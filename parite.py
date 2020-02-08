@@ -2,6 +2,7 @@
 # coding: utf-8
 import argparse
 import logging as lg
+import re
 
 import analysis.csv as c_an
 import analysis.xml as x_an
@@ -36,9 +37,11 @@ def main():
     except Warning as e:
         lg.warning(e)
     else:
-        if args.extension == 'csv':
+        e = re.search('^.+\.(\D{3})$', args.datafile)
+        extension = e.group(1)
+        if extension == 'csv':
             c_an.launch_analysis(datafile, args.byparty, args.info, args.displaynames, args.searchname, args.index, args.groupfirst)
-        elif args.extension == 'xml':
+        elif extension == 'xml':
             x_an.launch_analysis(datafile)
     finally:
         lg.info('###################### Analysis is over ###################')
