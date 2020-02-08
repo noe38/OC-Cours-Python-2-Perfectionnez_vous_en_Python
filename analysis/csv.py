@@ -16,14 +16,20 @@ import seaborn as sns # rend plus joli Matplotlib
 #lg.basicConfig(level=lg.DEBUG)
 
 class SetOfParliamentMember:
+    ALL_REGISTERED_PARTIES = [] # This is a class attribute
+
     def __init__(self, name):
         self.name = name
 
     def data_from_csv(self, csv_file):
         self.dataframe = pd.read_csv(csv_file, sep=";")
+        parties = self.dataframe["parti_ratt_financier"].dropna().values
+        self._register_parties(parties)
 
     def data_from_dataframe(self, dataframe):
         self.dataframe = dataframe
+        parties = self.dataframe["parti_ratt_financier"].dropna().values
+        self._register_parties(parties)
 
     def display_chart(self):
         data = self.dataframe
@@ -43,7 +49,7 @@ class SetOfParliamentMember:
                 proportions,
                 labels=labels,
                 autopct="%1.1f%%"
-                )
+        )
         plt.title("{} ({} MPs)".format(self.name, nb_mps))
         plt.show()
 
@@ -78,6 +84,7 @@ class SetOfParliamentMember:
         return mp_name in self.dataframe["nom"].values
 
     def __getitem__(self, index):
+        index = int(index)
         try:
             result = dict(self.dataframe.iloc[index])
         except:
@@ -110,7 +117,38 @@ class SetOfParliamentMember:
     def __gt__(self, other):
         return self.number_of_mps > other.number_of_mps
 
-    # The following 2 methods are a way to simulate a calculated attribute
+    @property
+    def number_of_mps(self):
+        return len(self.dataframe)
+
+    @number_of_mps.setter
+    def number_of_mps(self, value):
+        raise Exception("You can not set the number of MPs!")
+
+    @classmethod
+    def _register_parties(cl, parties):
+        cl.ALL_REGISTERED_PARTIES = cl._group_two_lists_of_parties(cl.ALL_REGISTERED_PARTIES, list(parties))
+
+    @classmethod
+    def get_all_registered_parties(cl):
+        return cl.ALL_REGISTERED_PARTIES
+
+    @staticmethod
+    def _group_two_lists_of_parties(original, new):
+        return list(set(original + new)) # This line drop duplicates in the list 'original + new'
+
+    def number_mp_by_party(self):
+        data = self.dataframe
+
+        result = {}
+        for party in self.get_all_registered_parties():
+            mps_of_this_party = data[data["parti_ratt_financier"] == party]
+            result[party] = len(mps_of_this_party)
+
+        return result
+
+
+    """ # The following 2 methods are a way to simulate a calculated attribute
     # (attribute 'number_of_mps' is calculated from attribute 'self.dataframe')
     # Tehre is a muche better way to do it, using decorator '@property'
     def __getattr__(self, attr):
@@ -120,7 +158,7 @@ class SetOfParliamentMember:
     def __setattr__(self, attr, value):
         if attr == "number_of_mps":
             raise Exception("You can not set the number of MPs!")
-        self.__dict__[attr] = value ## todo: c'est l'occasion de parler de __dict__ dans le cours
+        self.__dict__[attr] = value ## todo: c'est l'occasion de parler de __dict__ dans le cours """
 
 
 def launch_analysis(data_file, by_party = False, info = False, displaynames = False, searchname = None, index = None, groupfirst = None):
