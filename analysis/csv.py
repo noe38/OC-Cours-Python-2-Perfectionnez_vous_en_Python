@@ -6,17 +6,17 @@ import pprint
 import logging as lg
 import datetime as dt
 
-import pandas as pd
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns # rend plus joli Matplotlib
-
+import pandas as pd
+#import seaborn as sns # rend plus joli Matplotlib
 
 #lg.basicConfig(level=lg.DEBUG)
 
-AGE_COLUM_NAME = "age"  # Name of the new column (containing the age of the MP) to create in the dataframe
+AGE_COLUM_NAME = "age"  # Name of the new column (containing the age of the MP)
+                        #to create in the dataframe
 
 AGE_YEARS_COLUMN_NAME = "age_in_years"
 BIRTH_COLUMN_NAME = "birth"
@@ -53,11 +53,10 @@ class SetOfParliamentMember:
 
         fig, ax = plt.subplots()
         ax.axis("equal")
-        ax.pie(
-                proportions,
-                labels=labels,
-                autopct="%1.1f%%"
-        )
+        ax.pie(proportions,
+               labels=labels,
+               autopct="%1.1f%%"
+               )
         plt.title("{} ({} MPs)".format(self.name, nb_mps))
         plt.show()
 
@@ -65,7 +64,8 @@ class SetOfParliamentMember:
         result = {}
         data = self.dataframe
 
-        # These 2 syntaxes are equivalent: data.parti_ratt_financier and data['parti_ratt_financier']
+        # These 2 syntaxes are equivalent:
+        # data.parti_ratt_financier and data['parti_ratt_financier']
         all_parties = data["parti_ratt_financier"].dropna().unique()
 
         for party in all_parties:
@@ -94,7 +94,7 @@ class SetOfParliamentMember:
     def __getitem__(self, index):
         index = int(index)
         try:
-            result = dict(self.dataframe.iloc[index])
+            result = dict(self.dataframe.ix[index])
         except:
             if index < 0:
                 raise Exception("Please select a positive index")
@@ -106,7 +106,8 @@ class SetOfParliamentMember:
 
     def __add__(self, other):
         if not isinstance(other, SetOfParliamentMember):
-            raise Exception("Can not add a SetOfParliamentMember with an object of type {}".format(type(other)))
+            raise Exception("Can not add a SetOfParliamentMember with an object of type {}"
+                            .format(type(other)))
 
         df1, df2 = self.dataframe, other.dataframe ##todo: ici il y a du packing/unpacking
         df = df1.append(df2)
@@ -116,7 +117,8 @@ class SetOfParliamentMember:
         s.data_from_dataframe(df)
         return s
 
-    def __radd__(self, other): ## todo : l'implementation de cette methode ne suit a mon avis pas les bonnes pratiques
+    def __radd__(self, other): ## todo : l'implementation de cette methode
+                                ## ne suit a mon avis pas les bonnes pratiques
         return self
 
     def __lt__(self, other):
@@ -135,7 +137,8 @@ class SetOfParliamentMember:
 
     @classmethod
     def _register_parties(cl, parties):
-        cl.ALL_REGISTERED_PARTIES = cl._group_two_lists_of_parties(cl.ALL_REGISTERED_PARTIES, list(parties))
+        cl.ALL_REGISTERED_PARTIES = cl._group_two_lists_of_parties(cl.ALL_REGISTERED_PARTIES,
+                                                                   list(parties))
 
     @classmethod
     def get_all_registered_parties(cl):
@@ -158,7 +161,7 @@ class SetOfParliamentMember:
     @staticmethod
     def display_histogram(values):
         fig, ax = plt.subplots()
-        ax.hist(values, bins = 20)
+        ax.hist(values, bins=20)
         plt.title("Ages ({} MPs)".format(len(values)))
         plt.show()
 
@@ -175,10 +178,12 @@ class SetOfParliamentMember:
         if not AGE_COLUM_NAME in data.columns:
             data[AGE_COLUM_NAME] = data[BIRTH_COLUMN_NAME].apply(lambda date: now-date)
 
-        # Here is en other way to fill a column of a dataframe (less elegent than the previous ones!):
+        # Here is en other way to fill a column of a dataframe
+        # (less elegent than the previous ones!):
         new_column = []
         for age in data[AGE_COLUM_NAME]:
-            # age is of the type datetime.timedelta (because it was calculated from a difference between two dates)
+            # age is of the type datetime.timedelta (because it was calculated from
+            # a difference between two dates)
             # Here, we xant to convert it to an integer containing the age, expressed in years
             age_in_years = int(age.days / 365)
             new_column += [age_in_years]
@@ -236,10 +241,13 @@ class SetOfParliamentMember:
     def __setattr__(self, attr, value):
         if attr == "number_of_mps":
             raise Exception("You can not set the number of MPs!")
-        self.__dict__[attr] = value ## todo: c'est l'occasion de parler de __dict__ dans le cours """
+        self.__dict__[attr] = value ## todo: c'est l'occasion de parler
+                                    ## de __dict__ dans le cours """
 
 
-def launch_analysis(data_file, by_party = False, info = False, displaynames = False, searchname = None, index = None, groupfirst = None, by_age = None):
+def launch_analysis(data_file,
+                    by_party=False, info=False, displaynames=False,
+                    searchname=None, index=None, groupfirst=None, by_age=None):
     sopm = SetOfParliamentMember("All MPs")
     sopm.data_from_csv(os.path.join("data", data_file))
     sopm.display_chart()
@@ -270,7 +278,7 @@ def launch_analysis(data_file, by_party = False, info = False, displaynames = Fa
         groupfirst = int(groupfirst)
         parties = sopm.split_by_political_party()
         parties = parties.values()
-        parties_by_size = sorted(parties, reverse = True)
+        parties_by_size = sorted(parties, reverse=True)
 
         print()
         print("Info: the {} biggest groups are :".format(groupfirst))
@@ -305,7 +313,7 @@ def launch_analysis(data_file, by_party = False, info = False, displaynames = Fa
     except IOError as e:
         lg.critical('Ow :( The file was not found. Here is the message: {}'.format(e))
  """
-    
+
 
 if __name__ == "__main__":
     launch_analysis('current_mps.csv')
