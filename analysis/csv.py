@@ -4,6 +4,7 @@
 import os
 import pprint
 import logging as lg
+import datetime as dt
 
 import pandas as pd
 import matplotlib
@@ -14,6 +15,13 @@ import seaborn as sns # rend plus joli Matplotlib
 
 
 #lg.basicConfig(level=lg.DEBUG)
+
+AGE_COLUM_NAME = "age"  # Name of the new column (containing the age of the MP) to create in the dataframe
+
+AGE_YEARS_COLUMN_NAME = "age_in_years"
+BIRTH_COLUMN_NAME = "birth"
+
+MINIMUM_MP_AGE = 18
 
 class SetOfParliamentMember:
     ALL_REGISTERED_PARTIES = [] # This is a class attribute
@@ -96,7 +104,7 @@ class SetOfParliamentMember:
                 raise Exception("Wrong index")
         return result
 
-    def __add_(self, other):
+    def __add__(self, other):
         if not isinstance(other, SetOfParliamentMember):
             raise Exception("Can not add a SetOfParliamentMember with an object of type {}".format(type(other)))
 
@@ -147,6 +155,76 @@ class SetOfParliamentMember:
 
         return result
 
+    @staticmethod
+    def display_histogram(values):
+        fig, ax = plt.subplots()
+        ax.hist(values, bins = 20)
+        plt.title("Ages ({} MPs)".format(len(values)))
+        plt.show()
+
+    def _compute_age_column(self):
+        now = dt.datetime.now()
+        data = self.dataframe
+
+        # In data, the column "date_naissance" still contains string (ex:"1945-08-10")
+        # We first have to convert this to a column of type datetime
+        if not BIRTH_COLUMN_NAME in data.columns:
+            data[BIRTH_COLUMN_NAME] = \
+                data["date_naissance"].apply(lambda string: dt.datetime.strptime(string, "%Y-%m-%d"))
+
+        if not AGE_COLUM_NAME in data.columns:
+            data[AGE_COLUM_NAME] = data[BIRTH_COLUMN_NAME].apply(lambda date: now-date)
+
+        # Here is en other way to fill a column of a dataframe (less elegent than the previous ones!):
+        new_column = []
+        for age in data[AGE_COLUM_NAME]:
+            # age is of the type datetime.timedelta (because it was calculated from a difference between two dates)
+            # Here, we xant to convert it to an integer containing the age, expressed in years
+            age_in_years = int(age.days / 365)
+            new_column += [age_in_years]
+        data[AGE_YEARS_COLUMN_NAME] = new_column
+
+    def split_by_age(self, age_split):
+        data = self.dataframe
+        self._compute_age_column()
+        self.display_histogram(data[AGE_YEARS_COLUMN_NAME].values)
+
+        result = {}
+
+        if age_split < MINIMUM_MP_AGE:
+            categ = "Under (or eaqual) {} years old".format(MINIMUM_MP_AGE)
+            s = SetOfParliamentMember(categ)
+            s.data_from_dataframe(data)
+            result = {categ : s}
+
+        else:
+            categ1 = "Under (or equal) {} years old".format(age_split)
+            categ2 = "Over {} years old".format(age_split)
+            s1, s2 = SetOfParliamentMember(categ1), SetOfParliamentMember(categ2)
+            condition = data[AGE_YEARS_COLUMN_NAME] <= age_split
+            data1 = data[condition]
+            data2 = data[~condition]
+            s1.data_from_dataframe(data1)
+            s2.data_from_dataframe(data2)
+            result = {
+                categ1 : s1,
+                categ2 : s2
+            }
+
+        return result
+
+
+    """ def __iter__(self):
+        self.iterator_state = 0
+        return self
+
+    def __next__(self):
+        if self.iterator_state >= len(self):
+            raise StopIteration()
+        result = self[self.iterator_state]
+        self.iterator_state += 1
+        return result """
+
 
     """ # The following 2 methods are a way to simulate a calculated attribute
     # (attribute 'number_of_mps' is calculated from attribute 'self.dataframe')
@@ -161,7 +239,7 @@ class SetOfParliamentMember:
         self.__dict__[attr] = value ## todo: c'est l'occasion de parler de __dict__ dans le cours """
 
 
-def launch_analysis(data_file, by_party = False, info = False, displaynames = False, searchname = None, index = None, groupfirst = None):
+def launch_analysis(data_file, by_party = False, info = False, displaynames = False, searchname = None, index = None, groupfirst = None, by_age = None):
     sopm = SetOfParliamentMember("All MPs")
     sopm.data_from_csv(os.path.join("data", data_file))
     sopm.display_chart()
@@ -202,6 +280,18 @@ def launch_analysis(data_file, by_party = False, info = False, displaynames = Fa
         s = sum(parties_by_size[0:groupfirst])
 
         s.display_chart()
+
+    if by_age is not None:
+        by_age = int(by_age) # by_age was still a string, passed by the command Line
+        for age_group, s in sopm.split_by_age(by_age).items():
+            print()
+            print("-" * 50)
+            print(age_group + ":")
+            s.display_chart()
+            print()
+            print("{} : Distribution by party:".format(age_group))
+            print()
+            pprint.pprint(s.number_mp_by_party())
 
 
 """ def launch_analysis(data_file):
